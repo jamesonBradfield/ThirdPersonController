@@ -16,7 +16,6 @@ public partial class WalkState : PlayerState
 
     public override void _PhysicsProcess(double delta)
     {
-        // throw new NotImplementedException();
         Vector3 direction = (cameraPivot.Transform.Basis * new Vector3(inputDir.X, 0, inputDir.Y)).Normalized();
         if (direction != Vector3.Zero)
         {
