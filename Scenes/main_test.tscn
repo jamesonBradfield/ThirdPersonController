@@ -1,0 +1,49 @@
+[gd_scene load_steps=6 format=3 uid="uid://de1p6ccj3xyf4"]
+
+[ext_resource type="PackedScene" uid="uid://c6xvq7vgypn1l" path="res://Scenes/player.tscn" id="1_vp2v7"]
+[ext_resource type="Script" uid="uid://co20wub33y4rh" path="res://Scripts/Camera.cs" id="2_g4g7g"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_087m6"]
+sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+ground_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+
+[sub_resource type="Sky" id="Sky_kbjga"]
+sky_material = SubResource("ProceduralSkyMaterial_087m6")
+
+[sub_resource type="Environment" id="Environment_cg5rg"]
+background_mode = 2
+sky = SubResource("Sky_kbjga")
+tonemap_mode = 2
+glow_enabled = true
+
+[node name="MainTest" type="Node3D"]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 0, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_cg5rg")
+
+[node name="CSGBox3D" type="CSGBox3D" parent="."]
+use_collision = true
+collision_layer = 2
+size = Vector3(100, 0.1, 100)
+
+[node name="Player" parent="." node_paths=PackedStringArray("cameraPivot") instance=ExtResource("1_vp2v7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0723245, 0.919943, 0)
+cameraPivot = NodePath("../Pivot")
+
+[node name="Pivot" type="Node3D" parent="." node_paths=PackedStringArray("camera", "target")]
+script = ExtResource("2_g4g7g")
+camera = NodePath("SpringArm3D/Camera3D")
+mouseSensitivity = 0.02
+target = NodePath("../Player")
+
+[node name="SpringArm3D" type="SpringArm3D" parent="Pivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.684513, 0)
+collision_mask = 2
+spring_length = -3.0
+
+[node name="Camera3D" type="Camera3D" parent="Pivot/SpringArm3D"]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
