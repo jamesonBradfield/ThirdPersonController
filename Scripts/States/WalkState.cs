@@ -1,36 +1,68 @@
 using Godot;
 using System;
+using GodotTools;
 
 public partial class WalkState : PlayerState
 {
-    public override void _Enter()
+    public override void HandleReady()
     {
-        Logger.Debug("Entered Walk State");
+    }
+
+    public override void HandleEnter()
+    {
+        GodotLogger.Debug("Entered Walk State");
+        if (animationPlayer == null)
+            return;
         animationPlayer.Play("TPose|Walking");
     }
 
-    public override void _Exit()
+    public override void HandleExit()
     {
-        // throw new NotImplementedException();
     }
 
-    public override void _PhysicsProcess(double delta)
+    public override void HandleProcess(double delta)
     {
-        Vector3 direction = (cameraPivot.Transform.Basis * new Vector3(inputDir.X, 0, inputDir.Y)).Normalized();
-        if (direction != Vector3.Zero)
+        // Let the state machine handle the hierarchical processing
+        // We don't need to manually delegate here
+    }
+
+    public override void HandlePhysicsProcess(double delta)
+    {
+        LocomotionBehavior locomotion = GetLocomotionBehavior();
+        if (locomotion == null)
+            return;
+        FreeLookBehavior freeLook = locomotion.GetFreeLookBehavior();
+        if (freeLook == null)
+            return;
+
+        // Start with the shared velocity
+        velocity = freeLook.velocity;
+
+        // Apply gravity
+        if (!player.IsOnFloor())
         {
-            velocity.X = direction.X * Speed;
-            velocity.Z = direction.Z * Speed;
+            velocity.Y += player.GetGravity() * (float)delta;
         }
+
+        // Apply movement using the camera direction
+        Vector3 cameraDirection = freeLook.GetWorldDirection();
+        if (cameraDirection.Length() > 0.1f)
+        {
+            velocity.X = cameraDirection.X * locomotion.GetSpeed();
+            velocity.Z = cameraDirection.Z * locomotion.GetSpeed();
+        }
+
+        // Apply to player
+        player.Velocity = velocity;
+        player.MoveAndSlide();
+
+        // Update shared velocity
+        velocity = player.Velocity;
+        freeLook.velocity = velocity;
     }
 
-    public override void _Process(double delta)
+    LocomotionBehavior GetLocomotionBehavior()
     {
-        // throw new NotImplementedException();
-    }
-
-    public override void _Ready()
-    {
-        // throw new NotImplementedException();
+        return GetParent<LocomotionBehavior>();
     }
 }

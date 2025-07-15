@@ -1,9 +1,12 @@
-[gd_scene load_steps=22 format=4 uid="uid://c6xvq7vgypn1l"]
+[gd_scene load_steps=25 format=4 uid="uid://c6xvq7vgypn1l"]
 
 [ext_resource type="Script" uid="uid://c1jm2n7efktgb" path="res://Scripts/Player.cs" id="1_cvnsp"]
+[ext_resource type="Script" uid="uid://biv2u4ga4s0qd" path="res://Scripts/FreeLookBehavior.cs" id="3_x3wgy"]
 [ext_resource type="Script" uid="uid://8invbm1pisoj" path="res://Scripts/StateMachine.cs" id="4_fkybt"]
+[ext_resource type="Script" uid="uid://cb77hfxbrei6i" path="res://Scripts/LocomotionBehavior.cs" id="5_3smsa"]
 [ext_resource type="Script" uid="uid://bol7ld5ys8wpl" path="res://Scripts/States/WalkState.cs" id="5_fkybt"]
 [ext_resource type="Script" uid="uid://cl8k50u5hw1w2" path="res://Scripts/States/IdleState.cs" id="5_x3wgy"]
+[ext_resource type="Script" uid="uid://2orhawpj3kx" path="res://Scripts/PlayerInputProvider.cs" id="7_3smsa"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_f60y1"]
 
@@ -1912,31 +1915,32 @@ _data = {
 &"TPose|Walking": SubResource("Animation_4psaj")
 }
 
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("stateMachine", "cameraPivot")]
+[node name="Player" type="CharacterBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0723245, 0, 0)
 collision_mask = 3
 script = ExtResource("1_cvnsp")
-stateMachine = NodePath("StateMachine")
-cameraPivot = NodePath("")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("CapsuleShape3D_f60y1")
 
-[node name="StateMachine" type="Node" parent="." node_paths=PackedStringArray("startState")]
+[node name="StateMachine" type="Node" parent="." node_paths=PackedStringArray("rootState")]
 script = ExtResource("4_fkybt")
-startState = NodePath("Idle")
+rootState = NodePath("FreeLookBehavior")
 metadata/_custom_type_script = "uid://8invbm1pisoj"
 
-[node name="Idle" type="Node" parent="StateMachine" node_paths=PackedStringArray("animationPlayer", "player")]
-script = ExtResource("5_x3wgy")
+[node name="FreeLookBehavior" type="Node" parent="StateMachine" node_paths=PackedStringArray("animationPlayer", "player")]
+script = ExtResource("3_x3wgy")
 animationPlayer = NodePath("../../female_character_animated/AnimationPlayer")
 player = NodePath("../..")
 
-[node name="Walk" type="Node" parent="StateMachine" node_paths=PackedStringArray("animationPlayer", "player")]
+[node name="Idle" type="Node" parent="StateMachine/FreeLookBehavior"]
+script = ExtResource("5_x3wgy")
+
+[node name="LocomotionBehavior" type="Node" parent="StateMachine/FreeLookBehavior"]
+script = ExtResource("5_3smsa")
+
+[node name="Walk" type="Node" parent="StateMachine/FreeLookBehavior/LocomotionBehavior"]
 script = ExtResource("5_fkybt")
-Speed = 5.0
-animationPlayer = NodePath("../../female_character_animated/AnimationPlayer")
-player = NodePath("../..")
 
 [node name="female_character_animated" type="Node3D" parent="."]
 transform = Transform3D(0.345, 0, 0, 0, 0.345, 0, 0, 0, 0.345, 0, -0.84429, 0)
@@ -2450,3 +2454,6 @@ settings/0/exclude_collision_count = 0
 libraries = {
 &"": SubResource("AnimationLibrary_adtma")
 }
+
+[node name="PlayerInputProvider" type="Node" parent="."]
+script = ExtResource("7_3smsa")

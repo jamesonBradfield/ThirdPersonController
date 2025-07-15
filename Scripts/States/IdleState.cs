@@ -1,35 +1,64 @@
 using Godot;
 using System;
+using GodotTools;
 
 public partial class IdleState : PlayerState
 {
-    [Export] float Speed;
-    public Vector3 velocity;
-    public override void _Enter()
+    [Export] float decelerationMultiplier = 2.0f;
+
+    public override void HandleReady()
     {
-        Logger.Debug("Entered Idle State");
+    }
+
+    public override void HandleEnter()
+    {
+        GodotLogger.Debug("Entered Idle State");
+        if (animationPlayer == null)
+            return;
         animationPlayer.Play("TPose|Idle");
     }
 
-    public override void _Exit()
+    public override void HandleExit()
     {
-        // throw new NotImplementedException();
     }
 
-    public override void _PhysicsProcess(double delta)
+    public override void HandleProcess(double delta)
     {
-        // throw new NotImplementedException();
-        velocity.X = Mathf.MoveToward(player.Velocity.X, 0, Speed);
-        velocity.Z = Mathf.MoveToward(player.Velocity.Z, 0, Speed);
+        // Let the state machine handle the hierarchical processing
+        // We don't need to manually delegate here
     }
 
-    public override void _Process(double delta)
+    public override void HandlePhysicsProcess(double delta)
     {
-        // throw new NotImplementedException();
+        FreeLookBehavior freeLook = GetFreeLookBehavior();
+        if (freeLook == null)
+            return;
+
+        // Start with the shared velocity
+        velocity = freeLook.velocity;
+
+        // Apply gravity
+        if (!player.IsOnFloor())
+        {
+            velocity.Y += player.GetGravity() * (float)delta;
+        }
+
+        // Apply deceleration
+        float decelerationSpeed = 5.0f * decelerationMultiplier;
+        velocity.X = Mathf.MoveToward(velocity.X, 0, decelerationSpeed);
+        velocity.Z = Mathf.MoveToward(velocity.Z, 0, decelerationSpeed);
+
+        // Apply to player
+        player.Velocity = velocity;
+        player.MoveAndSlide();
+
+        // Update shared velocity
+        velocity = player.Velocity;
+        freeLook.velocity = velocity;
     }
 
-    public override void _Ready()
+    FreeLookBehavior GetFreeLookBehavior()
     {
-        // throw new NotImplementedException();
+        return GetParent<FreeLookBehavior>();
     }
 }

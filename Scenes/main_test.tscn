@@ -30,9 +30,29 @@ use_collision = true
 collision_layer = 2
 size = Vector3(100, 0.1, 100)
 
-[node name="Player" parent="." node_paths=PackedStringArray("cameraPivot") instance=ExtResource("1_vp2v7")]
+[node name="Player" parent="." node_paths=PackedStringArray("stateMachine", "cameraPivot") instance=ExtResource("1_vp2v7")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0723245, 0.919943, 0)
+stateMachine = NodePath("StateMachine")
 cameraPivot = NodePath("../Pivot")
+
+[node name="FreeLookBehavior" parent="Player/StateMachine" index="0" node_paths=PackedStringArray("defaultSubstate")]
+defaultSubstate = NodePath("Idle")
+
+[node name="Idle" parent="Player/StateMachine/FreeLookBehavior" index="0" node_paths=PackedStringArray("animationPlayer", "player")]
+animationPlayer = NodePath("../../../female_character_animated/AnimationPlayer")
+player = NodePath("../../..")
+
+[node name="LocomotionBehavior" parent="Player/StateMachine/FreeLookBehavior" index="1" node_paths=PackedStringArray("animationPlayer", "player", "defaultSubstate")]
+animationPlayer = NodePath("../../../female_character_animated/AnimationPlayer")
+player = NodePath("../../..")
+defaultSubstate = NodePath("Walk")
+
+[node name="Walk" parent="Player/StateMachine/FreeLookBehavior/LocomotionBehavior" index="0" node_paths=PackedStringArray("animationPlayer", "player")]
+animationPlayer = NodePath("../../../../female_character_animated/AnimationPlayer")
+player = NodePath("../../../..")
+
+[node name="PlayerInputProvider" parent="Player" index="3" node_paths=PackedStringArray("cameraPivot")]
+cameraPivot = NodePath("../../Pivot")
 
 [node name="Pivot" type="Node3D" parent="." node_paths=PackedStringArray("camera", "target")]
 script = ExtResource("2_g4g7g")
@@ -47,3 +67,5 @@ spring_length = -3.0
 
 [node name="Camera3D" type="Camera3D" parent="Pivot/SpringArm3D"]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
+
+[editable path="Player"]
