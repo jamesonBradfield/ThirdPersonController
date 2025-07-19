@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using GodotTools;
 
 /// <summary>
 /// Base class for all player-related states.
@@ -33,14 +34,14 @@ public abstract partial class PlayerState : State
     /// Most player states will need to trigger animations, so this is commonly used.
     /// Export allows it to be set in the Godot editor.
     /// </summary>
-    [Export] protected AnimationPlayer animationPlayer;
+    protected AnimationPlayer animationPlayer;
 
     /// <summary>
     /// Reference to the Player (CharacterBody3D) that owns this state machine.
     /// States need this to access player properties like IsOnFloor(), GetGravity(), etc.
     /// and to apply movement via MoveAndSlide().
     /// </summary>
-    [Export] protected Player player;
+    protected Player player;
 
     /// <summary>
     /// Shared velocity vector that states can modify.

@@ -70,7 +70,7 @@ public partial class Player : CharacterBody3D
     /// Used by states to apply consistent gravity.
     /// </summary>
     /// <returns>Gravity force as a positive value</returns>
-    public float GetGravity()
+    public new float GetGravity()
     {
         return ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
     }

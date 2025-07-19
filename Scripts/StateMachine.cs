@@ -54,14 +54,35 @@ public partial class StateMachine : Node
 
     public override void _Ready()
     {
+        GodotLogger.Debug("StateMachine starting initialization...");
+
         // Build our cache of all available states
         CollectAllStates();
+        GodotLogger.Debug($"Found {allStates.Count} total states in scene tree");
+        // Call HandleReady on all states
+        foreach (State state in allStates)
+        {
+            state.HandleReady();
+        }
+        // List all found states for debugging
+        foreach (State state in allStates)
+        {
+            GodotLogger.Debug($"  - {state.Name} ({state.GetType().Name})");
+        }
 
         if (rootState == null)
+        {
+            GodotLogger.Warning("CRITICAL: StateMachine.rootState is not assigned! Select the StateMachine node and assign the root state in the inspector.");
             return;
+        }
+
+        GodotLogger.Debug($"Root state assigned: {rootState.Name}");
 
         // Start the machine by entering the root state
         EnterState(rootState);
+
+        GodotLogger.Debug("StateMachine initialization complete");
+        LogCurrentStatePath();
     }
 
     /// <summary>
@@ -71,13 +92,13 @@ public partial class StateMachine : Node
     /// 
     /// Flow: StateMachine._Process() -> RootState.Process() -> SubState.Process() -> LeafState.Process()
     /// </summary>
+    // In StateMachine._Process()
     public override void _Process(double delta)
     {
-        if (currentStatePath.Count == 0)
-            return;
-
-        // Call the root state's Process method - it handles the rest of the hierarchy
-        currentStatePath[0].Process(delta);
+        foreach (State activeState in currentStatePath)
+        {
+            activeState.HandleProcess(delta);
+        }
     }
 
     /// <summary>
@@ -97,14 +118,21 @@ public partial class StateMachine : Node
     /// </summary>
     public void ChangeState(string stateName)
     {
+        GodotLogger.Debug($"Attempting to change to state: {stateName}");
+
         State targetState = FindState(stateName);
 
         if (targetState == null)
         {
-            GodotLogger.Warning($"State '{stateName}' not found in hierarchy");
+            GodotLogger.Warning($"State '{stateName}' not found in hierarchy. Available states:");
+            foreach (State state in allStates)
+            {
+                GodotLogger.Warning($"  - {state.Name}");
+            }
             return;
         }
 
+        GodotLogger.Debug($"Found target state: {targetState.Name} ({targetState.GetType().Name})");
         TransitionToState(targetState);
     }
 
@@ -119,6 +147,7 @@ public partial class StateMachine : Node
             return;
         }
 
+        GodotLogger.Debug($"Changing to state instance: {targetState.Name}");
         TransitionToState(targetState);
     }
 
@@ -215,11 +244,16 @@ public partial class StateMachine : Node
     /// </summary>
     void TransitionToState(State targetState)
     {
+        GodotLogger.Debug($"=== TRANSITION START ===");
+        GodotLogger.Debug($"From: {GetCurrentStatePathString()}");
+
         // Build the full path to the target state
         List<State> targetPath = BuildStatePath(targetState);
+        GodotLogger.Debug($"To: {GetStatePathString(targetPath)}");
 
         // Find which states are common between current and target paths
         List<State> commonPath = FindCommonStatePath(currentStatePath, targetPath);
+        GodotLogger.Debug($"Common: {GetStatePathString(commonPath)}");
 
         // Exit states that won't be in the new path
         ExitToCommonAncestor(commonPath);
@@ -227,9 +261,12 @@ public partial class StateMachine : Node
         // Enter states that aren't already active
         EnterFromCommonAncestor(targetPath, commonPath);
 
-        // Update our current path
+        // Update our current path to reflect the new active states
         currentStatePath = targetPath;
         EmitSignal(SignalName.StateChanged);
+
+        GodotLogger.Debug($"Final: {GetCurrentStatePathString()}");
+        GodotLogger.Debug($"=== TRANSITION COMPLETE ===");
     }
 
     /// <summary>
@@ -238,15 +275,63 @@ public partial class StateMachine : Node
     /// </summary>
     void EnterState(State state)
     {
-        currentStatePath = BuildStatePath(state);
+        GodotLogger.Debug($"Entering root state: {state.Name}");
 
-        // Enter each state in the path from root to leaf
-        foreach (State pathState in currentStatePath)
+        // IMPORTANT: Call Enter() not HandleEnter() to trigger orchestration layer
+        // This ensures default substates are automatically entered
+        state.Enter();
+
+        // After the orchestration layer has done its work, rebuild the current path
+        // by walking down the active state chain
+        currentStatePath = BuildActiveStatePath();
+
+        GodotLogger.Debug($"Final state path after orchestration: {GetCurrentStatePathString()}");
+        EmitSignal(SignalName.StateChanged);
+    }
+
+    /// <summary>
+    /// Builds the current active state path by walking down from the root state
+    /// through each default substate until reaching the leaf.
+    /// This follows the same path that the orchestration layer creates.
+    /// </summary>
+    List<State> BuildActiveStatePath()
+    {
+        List<State> path = new List<State>();
+
+        if (rootState == null) return path;
+
+        State current = rootState;
+        path.Add(current);
+
+        // Follow the defaultSubstate chain - this matches what Enter() actually does
+        while (current != null)
         {
-            pathState.HandleEnter();
+            State defaultSubstate = GetDefaultSubstate(current);
+            if (defaultSubstate == null) break;
+
+            GodotLogger.Debug($"Following defaultSubstate: {current.Name} -> {defaultSubstate.Name}");
+            path.Add(defaultSubstate);
+            current = defaultSubstate;
         }
 
-        EmitSignal(SignalName.StateChanged);
+        return path;
+    }
+
+    /// <summary>
+    /// Gets the default substate of a state using reflection.
+    /// This is needed because defaultSubstate is protected.
+    /// </summary>
+    State GetDefaultSubstate(State state)
+    {
+        var defaultSubstateField = typeof(State).GetField("defaultSubstate",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        if (defaultSubstateField != null)
+        {
+            return (State)defaultSubstateField.GetValue(state);
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -309,6 +394,7 @@ public partial class StateMachine : Node
         // Exit from leaf to root, stopping at the common ancestor
         for (int i = currentStatePath.Count - 1; i >= commonPath.Count; i--)
         {
+            GodotLogger.Debug($"Calling HandleExit() on: {currentStatePath[i].Name}");
             currentStatePath[i].HandleExit();
         }
     }
@@ -322,7 +408,33 @@ public partial class StateMachine : Node
         // Enter from root to leaf, starting after the common ancestor
         for (int i = commonPath.Count; i < targetPath.Count; i++)
         {
+            GodotLogger.Debug($"Calling HandleEnter() on: {targetPath[i].Name}");
             targetPath[i].HandleEnter();
         }
+    }
+
+    /// <summary>
+    /// Logs the current state path for debugging.
+    /// </summary>
+    void LogCurrentStatePath()
+    {
+        GodotLogger.Debug($"Current state path: {GetCurrentStatePathString()}");
+    }
+
+    /// <summary>
+    /// Gets the current state path as a readable string.
+    /// </summary>
+    string GetCurrentStatePathString()
+    {
+        return GetStatePathString(currentStatePath);
+    }
+
+    /// <summary>
+    /// Converts a state path to a readable string.
+    /// </summary>
+    string GetStatePathString(List<State> path)
+    {
+        if (path.Count == 0) return "[empty]";
+        return "[" + string.Join(" -> ", path.Select(s => s.Name)) + "]";
     }
 }

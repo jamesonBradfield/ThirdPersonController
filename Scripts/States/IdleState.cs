@@ -24,6 +24,7 @@ public partial class IdleState : PlayerState
 
     public override void HandleProcess(double delta)
     {
+
         // Let the state machine handle the hierarchical processing
         // We don't need to manually delegate here
     }
@@ -40,7 +41,7 @@ public partial class IdleState : PlayerState
         // Apply gravity
         if (!player.IsOnFloor())
         {
-            velocity.Y += player.GetGravity() * (float)delta;
+            velocity.Y -= player.GetGravity() * (float)delta;
         }
 
         // Apply deceleration
@@ -59,6 +60,6 @@ public partial class IdleState : PlayerState
 
     FreeLookBehavior GetFreeLookBehavior()
     {
-        return GetParent<FreeLookBehavior>();
+        return GetParent().GetParent<FreeLookBehavior>();
     }
 }

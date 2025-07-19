@@ -4,6 +4,9 @@ using GodotTools;
 
 public partial class WalkState : PlayerState
 {
+    [Export] float WalkSpeed;
+    LocomotionBehavior locomotion;
+    FreeLookBehavior freeLook;
     public override void HandleReady()
     {
     }
@@ -14,6 +17,9 @@ public partial class WalkState : PlayerState
         if (animationPlayer == null)
             return;
         animationPlayer.Play("TPose|Walking");
+        locomotion = GetLocomotionBehavior();
+        freeLook = locomotion.GetFreeLookBehavior();
+        locomotion.SetSpeed(WalkSpeed);
     }
 
     public override void HandleExit()
@@ -28,10 +34,8 @@ public partial class WalkState : PlayerState
 
     public override void HandlePhysicsProcess(double delta)
     {
-        LocomotionBehavior locomotion = GetLocomotionBehavior();
         if (locomotion == null)
             return;
-        FreeLookBehavior freeLook = locomotion.GetFreeLookBehavior();
         if (freeLook == null)
             return;
 
@@ -41,15 +45,15 @@ public partial class WalkState : PlayerState
         // Apply gravity
         if (!player.IsOnFloor())
         {
-            velocity.Y += player.GetGravity() * (float)delta;
+            velocity.Y -= player.GetGravity() * (float)delta;
         }
 
-        // Apply movement using the camera direction
-        Vector3 cameraDirection = freeLook.GetWorldDirection();
-        if (cameraDirection.Length() > 0.1f)
+        // Apply movement using the world direction from input provider
+        Vector3 worldDirection = freeLook.GetWorldDirection();
+        if (worldDirection.Length() > 0.1f)
         {
-            velocity.X = cameraDirection.X * locomotion.GetSpeed();
-            velocity.Z = cameraDirection.Z * locomotion.GetSpeed();
+            velocity.X = worldDirection.X * locomotion.GetSpeed();
+            velocity.Z = worldDirection.Z * locomotion.GetSpeed();
         }
 
         // Apply to player
