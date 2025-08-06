@@ -1,9 +1,13 @@
-[gd_scene load_steps=9 format=3 uid="uid://de1p6ccj3xyf4"]
+[gd_scene load_steps=18 format=3 uid="uid://de1p6ccj3xyf4"]
 
 [ext_resource type="PackedScene" uid="uid://c6xvq7vgypn1l" path="res://Scenes/player.tscn" id="1_vp2v7"]
-[ext_resource type="Script" uid="uid://co20wub33y4rh" path="res://Scripts/Camera.cs" id="2_g4g7g"]
+[ext_resource type="Shader" uid="uid://bik5r0pajxwdf" path="res://psx_camera/psx_camera_shader.gdshader" id="2_26jq3"]
+[ext_resource type="Texture2D" uid="uid://buxubvcl0xme5" path="res://addons/proto-csgs/textures/dark/texture_07.png" id="4_18lj0"]
 [ext_resource type="PackedScene" uid="uid://dxw7cledbpiia" path="res://addons/proto-csgs/proto_csg_box_3d.tscn" id="4_26jq3"]
-[ext_resource type="Texture2D" uid="uid://cej3yoosomfd2" path="res://addons/proto-csgs/textures/dark/texture_13.png" id="5_087m6"]
+[ext_resource type="Texture2D" uid="uid://wso5e7raaysq" path="res://addons/proto-csgs/textures/green/texture_07.png" id="5_yh4u3"]
+[ext_resource type="PackedScene" uid="uid://ba6pjbml0igrx" path="res://PolyBlocks/EffectBlocks/assets/other/dust.tscn" id="6_087m6"]
+[ext_resource type="MeshLibrary" uid="uid://cxiwkrl4hlptx" path="res://ModularLibrary.tres" id="6_kbjga"]
+[ext_resource type="Texture2D" uid="uid://dd4v835tun4m0" path="res://addons/proto-csgs/textures/red/texture_07.png" id="8_0xk2i"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_087m6"]
 sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
@@ -18,9 +22,46 @@ sky = SubResource("Sky_kbjga")
 tonemap_mode = 2
 glow_enabled = true
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kbjga"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_087m6"]
+render_priority = 0
+shader = ExtResource("2_26jq3")
+shader_parameter/enable_fog = true
+shader_parameter/fog_color = Color(0.521658, 0.796629, 0.796154, 1)
+shader_parameter/noise_color = Color(0.783523, 0.783523, 0.783523, 1)
+shader_parameter/fog_distance = 100.0
+shader_parameter/fog_fade_range = 50.0
+shader_parameter/enable_noise = true
+shader_parameter/noise_time_fac = 5.478
+shader_parameter/enable_color_limitation = true
+shader_parameter/color_levels = 32
+shader_parameter/enable_dithering = true
+shader_parameter/dither_strength = 0.3
+
+[sub_resource type="QuadMesh" id="QuadMesh_kbjga"]
+material = SubResource("ShaderMaterial_087m6")
+size = Vector2(20, 20)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_26jq3"]
 resource_local_to_scene = true
-albedo_texture = ExtResource("5_087m6")
+albedo_texture = ExtResource("4_18lj0")
+uv1_offset = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cg5rg"]
+resource_local_to_scene = true
+albedo_texture = ExtResource("5_yh4u3")
+uv1_offset = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yh4u3"]
+resource_local_to_scene = true
+albedo_texture = ExtResource("5_yh4u3")
+uv1_offset = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_iflb3"]
+resource_local_to_scene = true
+albedo_texture = ExtResource("8_0xk2i")
 uv1_offset = Vector3(0.5, 0.5, 0.5)
 uv1_triplanar = true
 
@@ -33,18 +74,7 @@ shadow_enabled = true
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_cg5rg")
 
-[node name="Player" parent="." node_paths=PackedStringArray("cameraPivot") instance=ExtResource("1_vp2v7")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0723245, 1.01286, 0)
-cameraPivot = NodePath("../Pivot")
-
-[node name="PlayerInputProvider" parent="Player" index="3" node_paths=PackedStringArray("cameraPivot")]
-cameraPivot = NodePath("../../Pivot")
-
-[node name="Pivot" type="Node3D" parent="." node_paths=PackedStringArray("camera", "target")]
-script = ExtResource("2_g4g7g")
-camera = NodePath("SpringArm3D/Camera3D")
-mouseSensitivity = 0.02
-target = NodePath("../Player")
+[node name="Pivot" type="Node3D" parent="."]
 
 [node name="SpringArm3D" type="SpringArm3D" parent="Pivot"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.684513, 0)
@@ -52,11 +82,87 @@ collision_mask = 2
 spring_length = -3.0
 
 [node name="Camera3D" type="Camera3D" parent="Pivot/SpringArm3D"]
-transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, -3)
+current = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Pivot/SpringArm3D/Camera3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.49691e-08, 0, -0.4)
+mesh = SubResource("QuadMesh_kbjga")
 
 [node name="ProtoCSGBox3D" parent="." instance=ExtResource("4_26jq3")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.444245, 0)
 size = Vector3(100, 1, 100)
-material = SubResource("StandardMaterial3D_kbjga")
+material = SubResource("StandardMaterial3D_26jq3")
+block_style = 6
+
+[node name="ProtoCSGBox3D2" parent="." instance=ExtResource("4_26jq3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.75292, -0.317214, -8.7874)
+size = Vector3(2, 3.06689, 2)
+material = SubResource("StandardMaterial3D_cg5rg")
+block_color = 1
+block_style = 6
+
+[node name="ProtoCSGBox3D3" parent="." instance=ExtResource("4_26jq3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.675064, 0.0686507, -11.7229)
+size = Vector3(2, 3.83862, 2)
+material = SubResource("StandardMaterial3D_yh4u3")
+block_color = 1
+block_style = 6
+
+[node name="ProtoCSGBox3D4" parent="." instance=ExtResource("4_26jq3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.782035, -0.312758, -8.44437)
+size = Vector3(2, 3.07581, 2)
+material = SubResource("StandardMaterial3D_iflb3")
+block_color = 5
+block_style = 6
+
+[node name="Dust" parent="." instance=ExtResource("6_087m6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15946, 0)
+transform_align = 1
+
+[node name="GridMap" type="GridMap" parent="."]
+mesh_library = ExtResource("6_kbjga")
+
+[node name="Player" parent="." instance=ExtResource("1_vp2v7")]
+
+[node name="StateMachine" parent="Player" index="3" node_paths=PackedStringArray("visual")]
+visual = NodePath("..")
+
+[node name="FreeLook" parent="Player/StateMachine" index="0" node_paths=PackedStringArray("pivot", "defaultSubstate")]
+pivot = NodePath("../../../Pivot")
+lookSensitivity = 0.02
+defaultSubstate = NodePath("Idle")
+
+[node name="Walk" parent="Player/StateMachine/FreeLook" index="0"]
+moveScale = 0.5
+
+[node name="Run" parent="Player/StateMachine/FreeLook" index="1"]
+moveScale = 1.0
+
+[node name="Idle" parent="Player/StateMachine/FreeLook" index="2"]
+moveScale = 1.0
+
+[node name="Skeleton3D" parent="Player/HumanBaseFemale(FINAL_FOR_REAL)/TPose" index="0"]
+bones/0/position = Vector3(0.0231107, 2.8756, -0.0671816)
+bones/0/rotation = Quaternion(-0.00687403, 0.0127349, -0.0466229, 0.998808)
+bones/1/rotation = Quaternion(0.0214476, -0.0112004, 0.0222994, 0.999459)
+bones/2/rotation = Quaternion(-0.00128139, 0.00229042, 0.05174, 0.998657)
+bones/3/rotation = Quaternion(-0.0012743, 0.00755266, 0.0507489, 0.998682)
+bones/4/rotation = Quaternion(-0.00267992, -0.00230979, -0.0193603, 0.999806)
+bones/5/rotation = Quaternion(0.0157027, 0.00681419, -0.069898, 0.997407)
+bones/8/rotation = Quaternion(0.628579, 0.414762, -0.457844, 0.472483)
+bones/9/rotation = Quaternion(0.616101, 0.00566558, -0.0304044, 0.78706)
+bones/10/rotation = Quaternion(0.0153001, -0.00215346, 0.142656, 0.989652)
+bones/13/rotation = Quaternion(0.589356, -0.458939, 0.511307, 0.424969)
+bones/14/rotation = Quaternion(0.49533, 0.000332374, -0.0257901, 0.868322)
+bones/15/rotation = Quaternion(0.0143044, 0.00271799, -0.169552, 0.985414)
+bones/18/rotation = Quaternion(0.115703, 0.149929, 0.974749, -0.118312)
+bones/19/rotation = Quaternion(-0.235376, -0.0752784, 0.0417903, 0.968083)
+bones/20/rotation = Quaternion(0.52128, -0.0568248, -0.0843101, 0.847307)
+bones/21/rotation = Quaternion(0.305335, 0.0509556, -0.0158069, 0.950749)
+bones/24/rotation = Quaternion(-0.0381541, -0.0139895, 0.994271, -0.0988659)
+bones/25/rotation = Quaternion(-0.0855514, 0.0464035, 0.02088, 0.995034)
+bones/26/rotation = Quaternion(0.542491, -0.0492344, -0.0561108, 0.836739)
+bones/27/rotation = Quaternion(0.307851, -0.0504273, 0.0156551, 0.949968)
 
 [editable path="Player"]

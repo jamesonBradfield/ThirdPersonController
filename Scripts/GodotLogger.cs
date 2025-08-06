@@ -26,11 +26,33 @@ namespace GodotTools
             Error
         }
 
+        // Log entry structure
+        public class LogEntry
+        {
+            public DateTime Timestamp { get; set; }
+            public LogLevel Level { get; set; }
+            public string Message { get; set; }
+            public string ScriptName { get; set; }
+            public string MethodName { get; set; }
+            public int LineNumber { get; set; }
+            public string FormattedMessage { get; set; }
+            public string PlainMessage { get; set; }
+        }
+
         // Configuration
         private LogLevel _minimumLogLevel = LogLevel.Debug;
         private bool _logToFile = false;
         private string _logFilePath = "user://godot_log.txt";
         private bool _includeTimestamp = true;
+
+        // Log storage
+        private List<LogEntry> _logEntries = new List<LogEntry>();
+        private HashSet<string> _scriptNames = new HashSet<string>();
+        private int _maxLogEntries = 1000;
+
+        // Events for UI updates
+        public static event Action<LogEntry> LogAdded;
+        public static event Action<string> ScriptAdded;
 
         // Get the singleton instance
         public static GodotLogger Instance
@@ -55,7 +77,7 @@ namespace GodotTools
                 var tree = Engine.GetMainLoop() as SceneTree;
                 if (tree != null)
                 {
-                    tree.Root.AddChild(_instance);
+                    tree.Root.CallDeferred("add_child", _instance);
                 }
                 Debug("GodotLogger initialized");
             }
@@ -136,6 +158,14 @@ namespace GodotTools
         {
             string levelText = GetColoredLogLevel(level);
             string formattedMessage;
+
+            // Parse caller info
+            var callerParts = caller.Split('.');
+            string scriptName = callerParts.Length > 0 ? callerParts[0] : "Unknown";
+            string methodAndLine = callerParts.Length > 1 ? callerParts[1] : "Unknown:0";
+            var methodParts = methodAndLine.Split(':');
+            string methodName = methodParts.Length > 0 ? methodParts[0] : "Unknown";
+            int lineNumber = methodParts.Length > 1 && int.TryParse(methodParts[1], out int line) ? line : 0;
             if (_includeTimestamp)
             {
                 string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
@@ -145,6 +175,22 @@ namespace GodotTools
             {
                 formattedMessage = $"{levelText} [{caller}] {message}";
             }
+
+            // Create log entry
+            var logEntry = new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                Level = level,
+                Message = message,
+                ScriptName = scriptName,
+                MethodName = methodName,
+                LineNumber = lineNumber,
+                FormattedMessage = formattedMessage,
+                PlainMessage = StripBBCode(formattedMessage)
+            };
+
+            // Store log entry
+            StoreLogEntry(logEntry);
 
             // Log to Godot console
             switch (level)
@@ -161,23 +207,44 @@ namespace GodotTools
                     break;
             }
 
-            // Log to file if enabled (strip BBCode for file output)
+            // Log to file if enabled
             if (_logToFile)
             {
                 try
                 {
                     string filePath = ProjectSettings.GlobalizePath(_logFilePath);
-                    string fileMessage = StripBBCode(formattedMessage);
                     using (StreamWriter writer = File.AppendText(filePath))
                     {
-                        writer.WriteLine(fileMessage);
+                        writer.WriteLine(logEntry.PlainMessage);
                     }
                 }
                 catch (Exception e)
                 {
                     GD.PushError($"Failed to write to log file: {e.Message}");
-                    _logToFile = false; // Disable file logging if it fails
+                    _logToFile = false;
                 }
+            }
+        }
+
+        // Store log entry and manage collection size
+        private void StoreLogEntry(LogEntry entry)
+        {
+            _logEntries.Add(entry);
+
+            // Add script name to set if new
+            if (_scriptNames.Add(entry.ScriptName))
+            {
+                ScriptAdded?.Invoke(entry.ScriptName);
+            }
+
+            // Trigger log added event
+            LogAdded?.Invoke(entry);
+
+            // Manage log collection size
+            if (_logEntries.Count > _maxLogEntries)
+            {
+                int removeCount = _maxLogEntries / 4; // Remove 25% when limit reached
+                _logEntries.RemoveRange(0, removeCount);
             }
         }
 
@@ -246,6 +313,44 @@ namespace GodotTools
         public static void SetIncludeTimestamp(bool include)
         {
             Instance._includeTimestamp = include;
+        }
+        /// <summary>
+        /// Set the maximum number of log entries to keep in memory
+        /// </summary>
+        [Conditional("DEBUG")]
+        public static void SetMaxLogEntries(int maxEntries)
+        {
+            Instance._maxLogEntries = maxEntries;
+        }
+        /// <summary>
+        /// Get all log entries
+        /// </summary>
+        public static List<LogEntry> GetAllLogs()
+        {
+            return new List<LogEntry>(Instance._logEntries);
+        }
+        /// <summary>
+        /// Get log entries filtered by script name
+        /// </summary>
+        public static List<LogEntry> GetLogsByScript(string scriptName)
+        {
+            return Instance._logEntries.FindAll(entry => entry.ScriptName == scriptName);
+        }
+        /// <summary>
+        /// Get all script names that have logged messages
+        /// </summary>
+        public static HashSet<string> GetScriptNames()
+        {
+            return new HashSet<string>(Instance._scriptNames);
+        }
+        /// <summary>
+        /// Clear all stored log entries
+        /// </summary>
+        [Conditional("DEBUG")]
+        public static void ClearLogs()
+        {
+            Instance._logEntries.Clear();
+            Instance._scriptNames.Clear();
         }
     }
 }

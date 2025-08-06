@@ -1,5 +1,4 @@
 using Godot;
-using System;
 
 public partial class Camera : Node3D
 {
@@ -24,11 +23,3 @@ public partial class Camera : Node3D
         Position = target.Position;
     }
 }
-
-// func _unhandled_input(event: InputEvent) -> void:
-// 	if event is InputEventMouseMotion:
-// 		_camera_pivot.rotation.x -= event.relative.y * mouse_sensitivity
-// # Prevent the camera from rotating too far up or down.
-//         _camera_pivot.rotation.x = clampf(_camera_pivot.rotation.x, -tilt_limit, tilt_limit)
-// 		_camera_pivot.rotation.y += -event.relative.x * mouse_sensitivity
-//     }

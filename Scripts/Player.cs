@@ -26,10 +26,7 @@ using GodotTools;
 /// </summary>
 public partial class Player : CharacterBody3D
 {
-    [Export] public StateMachine stateMachine;
-    [Export] public Node3D cameraPivot;
-    [Export] public float jumpVelocity = 4.5f;
-
+    [Export] private StateMachine stateMachine;
     public override void _Ready()
     {
         ValidateSetup();
@@ -45,6 +42,7 @@ public partial class Player : CharacterBody3D
     {
         // Player no longer handles physics directly
         // States handle their own physics processing and call MoveAndSlide() when ready
+        MoveAndSlide();
     }
 
     /// <summary>
@@ -58,11 +56,6 @@ public partial class Player : CharacterBody3D
             GodotLogger.Warning("StateMachine not assigned to Player");
             return;
         }
-
-        if (cameraPivot == null)
-        {
-            GodotLogger.Warning("CameraPivot not assigned to Player - states won't be able to calculate camera direction");
-        }
     }
 
     /// <summary>
@@ -73,35 +66,6 @@ public partial class Player : CharacterBody3D
     public new float GetGravity()
     {
         return ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
-    }
-
-    /// <summary>
-    /// Applies a jump by setting the Y velocity, but only if on the floor.
-    /// Called by states (like JumpState) when jump input is detected.
-    /// 
-    /// NOTE: This directly modifies player.Velocity rather than working through
-    /// the state velocity system, since jump is an immediate velocity change.
-    /// </summary>
-    public void Jump()
-    {
-        if (!IsOnFloor())
-            return;
-
-        Vector3 currentVelocity = Velocity;
-        currentVelocity.Y = jumpVelocity;
-        Velocity = currentVelocity;
-
-        GodotLogger.Debug("Player jumped");
-    }
-
-    /// <summary>
-    /// Gets the camera pivot for states that need to calculate camera-relative movement.
-    /// Returns null if not assigned (states should handle this gracefully).
-    /// </summary>
-    /// <returns>Camera pivot Node3D or null</returns>
-    public Node3D GetCameraPivot()
-    {
-        return cameraPivot;
     }
 
     /// <summary>
