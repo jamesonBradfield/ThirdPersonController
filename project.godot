@@ -28,7 +28,7 @@ project/assembly_name="ThirdPersonTest"
 
 [editor_plugins]
 
-enabled=PackedStringArray()
+enabled=PackedStringArray("res://addons/gkanban/plugin.cfg")
 
 [input]
 
