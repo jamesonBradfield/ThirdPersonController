@@ -2,3 +2,33 @@ root = true
 
 [*]
 charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+indent_style = tab
+indent_size = 4
+
+# Disable auto-property suggestions for Godot compatibility
+dotnet_diagnostic.IDE0032.severity = none    # Use auto property
+dotnet_diagnostic.IDE0033.severity = none    # Use explicitly provided tuple name  
+dotnet_diagnostic.IDE0044.severity = none    # Add readonly modifier
+dotnet_diagnostic.CA1822.severity = none     # Mark members as static
+dotnet_diagnostic.IDE0290.severity = none    # Use primary constructor
+dotnet_diagnostic.IDE0028.severity = none    # Simplify collection initialization
+dotnet_diagnostic.IDE0300.severity = none    # Simplify collection initialization
+dotnet_diagnostic.IDE0301.severity = none    # Simplify collection initialization
+dotnet_diagnostic.IDE0305.severity = none    # Simplify collection initialization
+
+# Godot-specific preferences
+dotnet_diagnostic.CA1050.severity = none     # Declare types in namespaces (Godot scripts don't need namespaces)
+dotnet_diagnostic.CA1052.severity = none     # Static holder types should be sealed (Godot nodes can't be static)
+
+# Allow underscores in names (Godot uses snake_case for signals and some methods)
+dotnet_naming_rule.local_functions_rule.severity = none
+dotnet_diagnostic.IDE1006.severity = none
+
+[*.{gdscript,gd}]
+indent_style = tab
+indent_size = 4

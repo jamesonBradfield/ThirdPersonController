@@ -7,7 +7,7 @@
 [ext_resource type="Script" uid="uid://d236u30juc6a" path="res://Scripts/StateMachine/States/FreeLook.cs" id="3_x3wgy"]
 [ext_resource type="Script" uid="uid://r76dr5h37opl" path="res://Scripts/StateMachine/States/Locomotion.cs" id="5_3smsa"]
 [ext_resource type="Script" uid="uid://lkxhpa3sje3w" path="res://Scripts/StateMachine/InitializedState.cs" id="6_3smsa"]
-[ext_resource type="Script" uid="uid://cfp0h56jgwkag" path="res://Scripts/StateMachine/States/Impulse.cs" id="8_8erm5"]
+[ext_resource type="Script" uid="uid://dlkp8xk24dycg" path="res://Scripts/StateMachine/States/CharacterVelocityHandler.cs" id="9_f1ek2"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_f1ek2"]
 radius = 0.286946
@@ -4200,7 +4200,7 @@ states/Landing/position = Vector2(716, 92.6667)
 transitions = ["Start", "Jump", SubResource("AnimationNodeStateMachineTransition_p1odr"), "Jump", "Falling", SubResource("AnimationNodeStateMachineTransition_0gysh"), "Falling", "Landing", SubResource("AnimationNodeStateMachineTransition_vfarp"), "Landing", "End", SubResource("AnimationNodeStateMachineTransition_y6uwr")]
 
 [sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_h4iuc"]
-graph_offset = Vector2(-596, 211.391)
+graph_offset = Vector2(-332.364, 142.606)
 nodes/Animation/node = SubResource("AnimationNodeAnimation_pu2lt")
 nodes/Animation/position = Vector2(-53.3333, 800)
 "nodes/Animation 2/node" = SubResource("AnimationNodeAnimation_fs7ks")
@@ -4234,6 +4234,12 @@ stateMachine = NodePath("StateMachine")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = SubResource("CapsuleShape3D_f1ek2")
 
+[node name="CharacterVelocityHandler" type="Node" parent="." node_paths=PackedStringArray("target")]
+script = ExtResource("9_f1ek2")
+target = NodePath("..")
+Debug = false
+metadata/_custom_type_script = "uid://dlkp8xk24dycg"
+
 [node name="PlayerInputWrapper" type="Node" parent="."]
 script = ExtResource("2_f1ek2")
 
@@ -4248,33 +4254,41 @@ body3D = NodePath("..")
 [node name="FreeLook" type="Node" parent="StateMachine" node_paths=PackedStringArray("target", "defaultSubstate")]
 script = ExtResource("3_x3wgy")
 target = NodePath("../..")
+lookSensitivity = 0.02
 defaultSubstate = NodePath("Grounded")
 
 [node name="Grounded" type="Node" parent="StateMachine/FreeLook" node_paths=PackedStringArray("defaultSubstate")]
 script = ExtResource("6_3smsa")
 defaultSubstate = NodePath("Idle")
 
-[node name="Idle" type="Node" parent="StateMachine/FreeLook/Grounded"]
+[node name="Idle" type="Node" parent="StateMachine/FreeLook/Grounded" node_paths=PackedStringArray("velocityHandler")]
 script = ExtResource("5_3smsa")
-acceleration = 10.0
+velocityHandler = NodePath("../../../../CharacterVelocityHandler")
 
-[node name="Run" type="Node" parent="StateMachine/FreeLook/Grounded"]
+[node name="Run" type="Node" parent="StateMachine/FreeLook/Grounded" node_paths=PackedStringArray("velocityHandler")]
 script = ExtResource("5_3smsa")
-speed = 4.0
-acceleration = 6.0
-moveScale = 1.0
+MaxSpeed = 6.0
+Acceleration = 4.0
+velocityHandler = NodePath("../../../../CharacterVelocityHandler")
 
-[node name="Walk" type="Node" parent="StateMachine/FreeLook/Grounded"]
+[node name="Walk" type="Node" parent="StateMachine/FreeLook/Grounded" node_paths=PackedStringArray("velocityHandler")]
 script = ExtResource("5_3smsa")
-speed = 2.0
-acceleration = 5.0
-moveScale = 0.5
+MaxSpeed = 4.0
+Acceleration = 5.0
+velocityHandler = NodePath("../../../../CharacterVelocityHandler")
 
-[node name="Jump" type="Node" parent="StateMachine/FreeLook/Grounded"]
-script = ExtResource("8_8erm5")
-speed = 10.0
+[node name="Jump" type="Node" parent="StateMachine/FreeLook/Grounded" node_paths=PackedStringArray("velocityHandler")]
+script = ExtResource("5_3smsa")
+MaxSpeed = 100.0
+inheritVelocity = true
+Velocity = Vector3(0, 50, 0)
+velocityHandler = NodePath("../../../../CharacterVelocityHandler")
 
-[node name="Airborne" type="Node" parent="StateMachine/FreeLook"]
+[node name="Airborne" type="Node" parent="StateMachine/FreeLook" node_paths=PackedStringArray("defaultSubstate")]
+script = ExtResource("6_3smsa")
+defaultSubstate = NodePath("Falling")
+
+[node name="Falling" type="Node" parent="StateMachine/FreeLook/Airborne"]
 script = ExtResource("6_3smsa")
 
 [node name="HumanBaseFemale(FINAL_FOR_REAL)" type="Node3D" parent="."]
@@ -4517,3 +4531,5 @@ parameters/Jump/internal_active = false
 parameters/Jump/request = 0
 parameters/Momentum/blend_position = 0.0
 parameters/StateMachine/conditions/is_on_floor = false
+
+[node name="AccelerationDirection" type="Node3D" parent="."]
