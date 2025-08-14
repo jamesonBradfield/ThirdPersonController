@@ -131,23 +131,4 @@ transform = NodePath("../../Pivot")
 [node name="FreeLook" parent="Player/StateMachine" index="0" node_paths=PackedStringArray("pivot")]
 pivot = NodePath("../../../Pivot")
 
-[node name="Skeleton3D" parent="Player/HumanBaseFemale(FINAL_FOR_REAL)/TPose" index="0"]
-bones/0/position = Vector3(0.00451126, 2.87564, -0.0768228)
-bones/0/rotation = Quaternion(-0.00852503, 0.0132093, -0.0436103, 0.998925)
-bones/1/rotation = Quaternion(0.0247432, -0.0107444, 0.0232124, 0.999367)
-bones/2/rotation = Quaternion(0.00626453, 0.00335427, 0.0517786, 0.998633)
-bones/3/rotation = Quaternion(0.00632639, 0.00786188, 0.0508717, 0.998654)
-bones/4/rotation = Quaternion(-0.00456291, -0.00277607, -0.0189845, 0.999806)
-bones/5/rotation = Quaternion(0.0132914, 0.00545593, -0.0711756, 0.99736)
-bones/8/rotation = Quaternion(0.656193, 0.372751, -0.488029, 0.438515)
-bones/9/rotation = Quaternion(0.560554, 0.000860427, -0.0298124, 0.827581)
-bones/13/rotation = Quaternion(0.61305, -0.415221, 0.541981, 0.397514)
-bones/14/rotation = Quaternion(0.437115, 0.00366669, -0.0247051, 0.899059)
-bones/18/rotation = Quaternion(0.116041, 0.148238, 0.974988, -0.118147)
-bones/19/rotation = Quaternion(-0.229685, -0.0748352, 0.0410778, 0.969514)
-bones/20/rotation = Quaternion(0.517235, -0.0577384, -0.0855509, 0.849597)
-bones/24/rotation = Quaternion(-0.038683, -0.0102032, 0.994314, -0.0986878)
-bones/25/rotation = Quaternion(-0.0928795, 0.0477401, 0.0206806, 0.994317)
-bones/26/rotation = Quaternion(0.545062, -0.0505672, -0.0588811, 0.834795)
-
 [editable path="Player"]
