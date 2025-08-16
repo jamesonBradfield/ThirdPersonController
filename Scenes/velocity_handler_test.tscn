@@ -1,0 +1,26 @@
+[gd_scene load_steps=4 format=3 uid="uid://dlfy21qhw6wkx"]
+
+[ext_resource type="Script" uid="uid://dlkp8xk24dycg" path="res://Scripts/StateMachine/States/CharacterVelocityHandler.cs" id="1_bxt76"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_45h2i"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_6xtux"]
+
+[node name="VelocityHandlerTest" type="Node3D"]
+
+[node name="CharacterBody3D" type="CharacterBody3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="CharacterBody3D"]
+mesh = SubResource("CylinderMesh_45h2i")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CharacterBody3D"]
+shape = SubResource("CylinderShape3D_6xtux")
+
+[node name="Node3D" type="Node3D" parent="CharacterBody3D" node_paths=PackedStringArray("target")]
+script = ExtResource("1_bxt76")
+Acceleration = 0.2
+MaxSpeed = 3.0
+target = NodePath("..")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 13.8319, 0.0545878)

@@ -1,0 +1,18 @@
+[gd_resource type="AnimationNodeBlendSpace2D" load_steps=4 format=3 uid="uid://cpiyptxssamjq"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_ibpuf"]
+animation = &"Run"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_xhr2v"]
+animation = &"Strafe_Right_Run"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_5ymee"]
+animation = &"Strafe_Left_Run"
+
+[resource]
+blend_point_0/node = SubResource("AnimationNodeAnimation_ibpuf")
+blend_point_0/pos = Vector2(0, 0.5)
+blend_point_1/node = SubResource("AnimationNodeAnimation_xhr2v")
+blend_point_1/pos = Vector2(-0.5, 0)
+blend_point_2/node = SubResource("AnimationNodeAnimation_5ymee")
+blend_point_2/pos = Vector2(0.5, 0)

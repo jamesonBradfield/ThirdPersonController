@@ -1,0 +1,16 @@
+[gd_resource type="AnimationNodeStateMachine" load_steps=4 format=3 uid="uid://xklmn1uuhy4r"]
+
+[ext_resource type="AnimationNodeBlendSpace2D" uid="uid://bymfgnhjsidtp" path="res://Animations/walk_blend_space.tres" id="1_jgtg6"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_gymyn"]
+xfade_time = 0.25
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_dgwxj"]
+advance_mode = 2
+
+[resource]
+states/Locomotion/node = ExtResource("1_jgtg6")
+states/Locomotion/position = Vector2(326, 100.481)
+transitions = ["Start", "Locomotion", SubResource("AnimationNodeStateMachineTransition_gymyn"), "Locomotion", "End", SubResource("AnimationNodeStateMachineTransition_dgwxj")]
+graph_offset = Vector2(-90, -50)

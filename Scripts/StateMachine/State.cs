@@ -1,191 +1,144 @@
+using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using GodotTools;
-/// <summary>
-/// Base abstract class for all states in the hierarchical finite state machine.
-/// 
-/// ARCHITECTURE OVERVIEW:
-/// This class provides two layers of functionality:
-/// 
-/// 1. ORCHESTRATION LAYER (Enter, Exit, Process, PhysicsProcess):
-///    - These methods handle hierarchical state management
-///    - They automatically delegate to substates in the scene tree
-///    - They maintain the parent/child relationships
-///    - YOU SHOULD NOT OVERRIDE THESE unless you need custom hierarchy behavior
-/// 
-/// 2. IMPLEMENTATION LAYER (HandleXxx methods):
-///    - These are the methods you override in your concrete states
-///    - They contain your actual state logic (movement, animations, etc.)
-///    - They are called BY the orchestration layer
-///    - This is where your state behavior goes
-/// </summary>
-public abstract partial class State : Node
+[GlobalClass]
+public partial class State : Node
 {
-    [Export] public int channel;
-    [Export] protected InitializedState defaultSubstate;
-    protected IInputWrapper inputProvider;
-    protected StateMachine stateMachine;
-    protected InitializedState parentState;
+    [ExportGroup("Activation")]
+    [Export] string condition = "true";
+    [Export] int priority = 0;
 
-    // IMPLEMENTATION LAYER - Override these in your concrete states
-    public abstract void HandleReady();
-    public abstract void HandleProcess(double delta);
-    public abstract void HandlePhysicsProcess(double delta);
-    public abstract void HandleEnter();
-    public abstract void HandleExit();
+    [ExportGroup("Signal Processing")]
+    [Export] string signalExpression = "";
+    Variant genericData;
 
-    /// <summary>
-    /// Reference to the player's animation controller.
-    /// Most player states will need to trigger animations, so this is commonly used.
-    /// Export allows it to be set in the Godot editor.
-    /// </summary>
-    protected AnimationTree animationTree;
+    [ExportGroup("Velocity Configuration")]
+    [Export] Vector3 velocityImpulse;
+    [Export] float acceleration;
+    [Export] float maxSpeed;
+    [Export] bool inheritVelocity = true;
 
-    /// <summary>
-    /// Reference to the CharacterBody3D that owns this state machine.
-    /// States need this to access body properties like IsOnFloor(), GetGravity(), etc.
-    /// and to apply movement via MoveAndSlide().
-    /// </summary>
-    protected CharacterBody3D body3D;
+    CharacterVelocityHandler velocityHandler;
+    Player player;
+    List<State> children = new();
+    State activeChild;
+    Expression conditionExpr = new();
+    Expression signalExpr = new();
+
+    // Track if we're active in our parent's context
+    bool isActive = false;
 
     public override void _Ready()
     {
-        // Set our parent state (may be null if we're directly under StateMachine)
-        Node parent = GetParent();
-        if (parent is InitializedState state)
-            parentState = state;
+        player = GetNode<Player>("/root/Main/Player");
+        velocityHandler = player.GetNode<CharacterVelocityHandler>("CharacterVelocityHandler");
+        children = GetChildren().OfType<State>()
+            .OrderBy(s => s.priority)
+            .ToList();
+
+        conditionExpr.Parse(condition, new[] { "player", "velocity" });
+        if (!string.IsNullOrEmpty(signalExpression))
+            signalExpr.Parse(signalExpression, new[] { "velocity", "genericData" });
     }
 
-    /// <summary>
-    /// ORCHESTRATION LAYER: Manages hierarchical state entry.
-    /// 
-    /// When a state is entered:
-    /// 1. Calls HandleEnter() for the state's custom logic
-    /// 2. If this state has a defaultSubstate, automatically enters it
-    /// 
-    /// This creates a chain: ParentState.Enter() -> HandleEnter() -> ChildState.Enter()
-    /// </summary>
-    public virtual void Enter()
+    public void OnSignal(Variant data)
     {
-        // First, let this state do its entry logic
-        HandleEnter();
-
-        // Then, if we have a default substate, enter it automatically
-        if (defaultSubstate == null)
+        genericData = data;
+        // could be a case that a leaf state won't set its data, leaf states should set data, and execute signal expressions IE, our active Child bool should check if we have children and an active state, if we have no active child but also have no children, we are a leaf and should still execute, else we should probably check our condition to see if we should still be in the state. IE (if we are in grounded and idle/walk/run aren't firing, we must be Airborne and there is some bug "this should be impossible given the nature of our system but just making sure")
+        //
+        // TLDR
+        // just because we don't have an active child doesn't mean we shouldn't process signalExpressions (if we are the walk state "a leaf with no active child" currently our signalExpression isn't being executed)
+        if (activeChild == null)
             return;
-        defaultSubstate.Enter();
+
+        if (!string.IsNullOrEmpty(activeChild.signalExpression))
+            signalExpr.Execute(new Godot.Collections.Array { velocityHandler, genericData });
     }
 
-    /// <summary>
-    /// ORCHESTRATION LAYER: Manages hierarchical state exit.
-    /// 
-    /// When a state is exited:
-    /// 1. First exits all substates (children go first)
-    /// 2. Then calls HandleExit() for this state's cleanup logic
-    /// 
-    /// This ensures children are cleaned up before parents
-    /// </summary>
-    public virtual void Exit()
+    bool CanActivate()
     {
-        // First, exit any active substates
-        ExitAllSubstates();
+        if (condition == "true")
+            return true;
 
-        // Then do our own exit logic
-        HandleExit();
+        var result = conditionExpr.Execute(new Godot.Collections.Array { player, velocityHandler });
+        return result.VariantType == Variant.Type.Bool && result.AsBool();
     }
 
-    /// <summary>
-    /// ORCHESTRATION LAYER: Manages hierarchical processing.
-    /// 
-    /// Each frame:
-    /// 1. Calls HandleProcess() for this state's logic
-    /// 2. Finds the currently active substate at the next level
-    /// 3. Calls Process() on that substate (which repeats this pattern)
-    /// 
-    /// This creates a chain from root to leaf: Root.Process() -> Parent.Process() -> Leaf.Process()
-    /// But each state's HandleProcess() only runs once per frame
-    /// </summary>
-    public virtual void Process(double delta)
+    public void Process(double delta)
     {
-        // First, do this state's processing
-        HandleProcess(delta);
-
-        // Then delegate to the active substate
-        InitializedState activeSubstate = GetActiveSubstate();
-        if (activeSubstate == null)
-            return;
-        activeSubstate.Process(delta);
-    }
-
-    /// <summary>
-    /// ORCHESTRATION LAYER: Manages hierarchical physics processing.
-    /// Same pattern as Process(), but for physics updates.
-    /// </summary>
-    public virtual void PhysicsProcess(double delta)
-    {
-        // First, do this state's physics processing
-        HandlePhysicsProcess(delta);
-
-        // Then delegate to the active substate
-        InitializedState activeSubstate = GetActiveSubstate();
-        if (activeSubstate == null)
-            return;
-        activeSubstate.PhysicsProcess(delta);
-    }
-
-    /// <summary>
-    /// Gets the currently active state at the next level down in the hierarchy.
-    /// Used by the orchestration layer to know which child to delegate to.
-    /// </summary>
-    public InitializedState GetActiveSubstate()
-    {
-        if (stateMachine == null)
-            return null;
-        return stateMachine.GetActiveStateAtLevel(GetStateLevel() + 1);
-    }
-
-    /// <summary>
-    /// Exits all substates of this state.
-    /// Called during Exit() to ensure proper cleanup order.
-    /// </summary>
-    public void ExitAllSubstates()
-    {
-        InitializedState activeSubstate = GetActiveSubstate();
-        if (activeSubstate == null)
-            return;
-        activeSubstate.Exit();
-    }
-
-    /// <summary>
-    /// Calculates this state's level in the hierarchy.
-    /// Level 0 = directly under StateMachine
-    /// Level 1 = child of a level 0 state, etc.
-    /// </summary>
-    public int GetStateLevel()
-    {
-        int level = 0;
-        Node current = this;
-
-        // Walk up the tree until we hit the StateMachine
-        while (current.GetParent() != stateMachine)
+        if (!CanActivate())
         {
-            current = current.GetParent();
-            level++;
+            Deactivate();
+            return;
         }
-        return level;
+
+        State bestChild = children.FirstOrDefault(c => c.CanActivate())
+                          ?? children.FirstOrDefault(c => c.Name == "Idle");
+
+        if (bestChild != activeChild)
+        {
+            activeChild?.OnExit();
+            activeChild = bestChild;
+            activeChild?.OnEnter();
+        }
+
+        activeChild?.Process(delta);
     }
 
-    /// <summary>
-    /// Finds the StateMachine that owns this state by walking up the scene tree.
-    /// </summary>
-    public StateMachine GetStateMachine()
+    public void OnEnter()
     {
-        Node current = this;
-        while (current != null)
+        isActive = true;
+        GodotLogger.Debug($"Entering state: {Name}");
+
+        // Apply our velocity configuration
+        velocityHandler.MaxSpeed = maxSpeed;
+        velocityHandler.Acceleration = acceleration;
+
+        if (!inheritVelocity)
+            velocityHandler.Velocity = Vector3.Zero;
+
+        if (velocityImpulse != Vector3.Zero)
         {
-            if (current is StateMachine machine)
-                return machine;
-            current = current.GetParent();
+            velocityHandler.Velocity += velocityImpulse;
+            velocityImpulse = Vector3.Zero;  // Only apply once
         }
-        return null;
+
+        // Find and activate our best child
+        State bestChild = children.FirstOrDefault(c => c.CanActivate())
+                          ?? children.FirstOrDefault(c => c.Name == "Idle");
+
+        if (bestChild != null)
+        {
+            activeChild = bestChild;
+            activeChild.OnEnter();
+        }
+    }
+
+    void OnExit()
+    {
+        isActive = false;
+        GodotLogger.Debug($"Exiting state: {Name}");
+
+        // Exit our active child first
+        activeChild?.OnExit();
+        activeChild = null;
+
+        // Any cleanup for this state
+        // Reset any state-specific flags if needed
+    }
+
+    void Deactivate()
+    {
+        if (!isActive)
+            return;
+
+        // Recursively deactivate children
+        activeChild?.Deactivate();
+        activeChild = null;
+
+        // Mark ourselves as inactive
+        isActive = false;
+        GodotLogger.Debug($"Deactivating state: {Name}");
     }
 }

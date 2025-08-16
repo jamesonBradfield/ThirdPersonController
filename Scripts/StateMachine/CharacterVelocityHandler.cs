@@ -2,45 +2,37 @@ using Godot;
 [GlobalClass]
 public partial class CharacterVelocityHandler : Node
 {
-    [ExportGroup("Physics")]
-    [Export] private Vector3 velocity;
-    [Export] private Vector3 direction;
-    [Export] private float acceleration;
-    [Export] private float maxSpeed;
-    [ExportGroup("Nodes")]
-    [Export] private Node3D transform;
-    [Export] private CharacterBody3D target;
-    [ExportGroup("Debug")]
-    [Export] private bool Debug = true;
+    // PUBLIC FIELDS for Expression access
+    public Vector3 Direction;
+    public Vector3 Velocity;
+    public float Acceleration;
+    public float MaxSpeed;
 
-    public Vector3 Direction { get => direction; set => direction = value; }
-    public float Acceleration { get => acceleration; set => acceleration = value; }
-    public float MaxSpeed { get => maxSpeed; set => maxSpeed = value; }
-    public Node3D Transform { get => transform; set => transform = value; }
-    public CharacterBody3D Target { get => target; set => target = value; }
-    public Vector3 Velocity { get => velocity; set => velocity = value; }
-
-    public override void _PhysicsProcess(double delta) { }
+    [Export] CharacterBody3D Target;
+    [Export] Node3D Transform;
 
     public override void _Process(double delta)
     {
         if (Transform != null)
         {
             Basis yOnlyBasis = Basis.FromEuler(new Vector3(0, Transform.Rotation.Y, 0));
-            Vector3 localDirection = (yOnlyBasis * Direction).Normalized();
-            velocity += localDirection * Acceleration * (float)delta;
+            Vector3 worldDirection = (yOnlyBasis * Direction).Normalized();
+            Vector3 targetVelocity = worldDirection * MaxSpeed;
+
+            if (Acceleration > 0)
+            {
+                float accelThisFrame = Acceleration * (float)delta;
+                Velocity.X = Mathf.MoveToward(Velocity.X, targetVelocity.X, accelThisFrame);
+                Velocity.Z = Mathf.MoveToward(Velocity.Z, targetVelocity.Z, accelThisFrame);
+            }
+            else if (Acceleration < 0)
+            {
+                float decelThisFrame = Mathf.Abs(Acceleration) * (float)delta;
+                Velocity.X = Mathf.MoveToward(Velocity.X, 0, decelThisFrame);
+                Velocity.Z = Mathf.MoveToward(Velocity.Z, 0, decelThisFrame);
+            }
         }
-        else
-        {
-            velocity += Direction * Acceleration * (float)delta;
-        }
-        velocity = velocity.LimitLength(MaxSpeed);
-        Target.Velocity = velocity;
-        if (Debug)
-        {
-            DebugDraw3D.DrawGizmo(Target.Transform);
-        }
+
+        Target.Velocity = Velocity;
     }
-
-
 }

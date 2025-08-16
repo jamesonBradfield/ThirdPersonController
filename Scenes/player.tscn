@@ -1,13 +1,9 @@
-[gd_scene load_steps=63 format=4 uid="uid://c6xvq7vgypn1l"]
+[gd_scene load_steps=59 format=4 uid="uid://c6xvq7vgypn1l"]
 
 [ext_resource type="Script" uid="uid://c1jm2n7efktgb" path="res://Scripts/Player.cs" id="1_cvnsp"]
-[ext_resource type="Script" uid="uid://p4htof855l07" path="res://Scripts/StateMachine/PlayerInputWrapper.cs" id="2_f1ek2"]
-[ext_resource type="Script" uid="uid://ww5wa5j5j046" path="res://Scripts/StateMachine/StateMachine.cs" id="3_f1ek2"]
-[ext_resource type="Script" uid="uid://tygatq8m0ivy" path="res://Scripts/StateMachine/StateMachineController.cs" id="3_tx1dd"]
-[ext_resource type="Script" uid="uid://d236u30juc6a" path="res://Scripts/StateMachine/States/FreeLook.cs" id="3_x3wgy"]
-[ext_resource type="Script" uid="uid://r76dr5h37opl" path="res://Scripts/StateMachine/States/Locomotion.cs" id="5_3smsa"]
-[ext_resource type="Script" uid="uid://lkxhpa3sje3w" path="res://Scripts/StateMachine/InitializedState.cs" id="6_3smsa"]
-[ext_resource type="Script" uid="uid://dlkp8xk24dycg" path="res://Scripts/StateMachine/States/CharacterVelocityHandler.cs" id="9_f1ek2"]
+[ext_resource type="Script" uid="uid://b0tgk8s4iqd1m" path="res://Scripts/StateMachine/CharacterVelocityHandler.cs" id="2_8erm5"]
+[ext_resource type="Script" uid="uid://wxrhdbq3o51o" path="res://Scripts/StateMachine/InputHandler.cs" id="3_vgqql"]
+[ext_resource type="Script" uid="uid://b5nrm831djyv5" path="res://Scripts/StateMachine/State.cs" id="4_fkybt"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_f1ek2"]
 radius = 0.286946
@@ -4224,72 +4220,52 @@ nodes/StateMachine/position = Vector2(-53.3333, 373.333)
 nodes/output/position = Vector2(1120, 240)
 node_connections = [&"Casting", 0, &"Jump", &"Casting", 1, &"CastingTransition", &"CastingTransition", 0, &"Animation 3", &"CastingTransition", 1, &"Animation", &"CastingTransition", 2, &"Animation 2", &"CastingTransition", 3, &"Animation 4", &"CastingTransition", 4, &"Animation 5", &"Jump", 0, &"Momentum", &"Jump", 1, &"StateMachine", &"output", 0, &"Casting"]
 
-[node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("stateMachine")]
+[node name="Player" type="CharacterBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0723245, 0, 0)
 collision_mask = 3
 script = ExtResource("1_cvnsp")
-stateMachine = NodePath("StateMachine")
+
+[node name="CharacterVelocityHandler" type="Node" parent="." node_paths=PackedStringArray("Target")]
+script = ExtResource("2_8erm5")
+Target = NodePath("..")
+
+[node name="InputHandler" type="Node" parent="."]
+script = ExtResource("3_vgqql")
+
+[node name="RootState" type="Node" parent="."]
+script = ExtResource("4_fkybt")
+metadata/_custom_type_script = "uid://b5nrm831djyv5"
+
+[node name="Grounded" type="Node" parent="RootState"]
+script = ExtResource("4_fkybt")
+condition = "player.Grounded"
+metadata/_custom_type_script = "uid://b5nrm831djyv5"
+
+[node name="Idle" type="Node" parent="RootState/Grounded"]
+script = ExtResource("4_fkybt")
+condition = "player.Grounded"
+priority = 99
+acceleration = -10.0
+inheritVelocity = false
+metadata/_custom_type_script = "uid://b5nrm831djyv5"
+
+[node name="Walk" type="Node" parent="RootState/Grounded"]
+script = ExtResource("4_fkybt")
+condition = "player.Moving"
+signalExpression = "velocity.Direction = Vector3(genericData.X,0,genericData.Y)"
+acceleration = 10.0
+maxSpeed = 5.0
+inheritVelocity = false
+metadata/_custom_type_script = "uid://b5nrm831djyv5"
+
+[node name="Airborne" type="Node" parent="RootState"]
+script = ExtResource("4_fkybt")
+condition = "!player.Grounded"
+metadata/_custom_type_script = "uid://b5nrm831djyv5"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 shape = SubResource("CapsuleShape3D_f1ek2")
-
-[node name="CharacterVelocityHandler" type="Node" parent="." node_paths=PackedStringArray("target")]
-script = ExtResource("9_f1ek2")
-target = NodePath("..")
-Debug = false
-metadata/_custom_type_script = "uid://dlkp8xk24dycg"
-
-[node name="PlayerInputWrapper" type="Node" parent="."]
-script = ExtResource("2_f1ek2")
-
-[node name="StateMachineController" type="Node" parent="."]
-script = ExtResource("3_tx1dd")
-
-[node name="StateMachine" type="Node" parent="." node_paths=PackedStringArray("rootState", "body3D")]
-script = ExtResource("3_f1ek2")
-rootState = NodePath("FreeLook")
-body3D = NodePath("..")
-
-[node name="FreeLook" type="Node" parent="StateMachine" node_paths=PackedStringArray("target", "defaultSubstate")]
-script = ExtResource("3_x3wgy")
-target = NodePath("../..")
-lookSensitivity = 0.02
-defaultSubstate = NodePath("Grounded")
-
-[node name="Grounded" type="Node" parent="StateMachine/FreeLook" node_paths=PackedStringArray("defaultSubstate")]
-script = ExtResource("6_3smsa")
-defaultSubstate = NodePath("Idle")
-
-[node name="Idle" type="Node" parent="StateMachine/FreeLook/Grounded" node_paths=PackedStringArray("velocityHandler")]
-script = ExtResource("5_3smsa")
-velocityHandler = NodePath("../../../../CharacterVelocityHandler")
-
-[node name="Run" type="Node" parent="StateMachine/FreeLook/Grounded" node_paths=PackedStringArray("velocityHandler")]
-script = ExtResource("5_3smsa")
-MaxSpeed = 6.0
-Acceleration = 4.0
-velocityHandler = NodePath("../../../../CharacterVelocityHandler")
-
-[node name="Walk" type="Node" parent="StateMachine/FreeLook/Grounded" node_paths=PackedStringArray("velocityHandler")]
-script = ExtResource("5_3smsa")
-MaxSpeed = 4.0
-Acceleration = 5.0
-velocityHandler = NodePath("../../../../CharacterVelocityHandler")
-
-[node name="Jump" type="Node" parent="StateMachine/FreeLook/Grounded" node_paths=PackedStringArray("velocityHandler")]
-script = ExtResource("5_3smsa")
-MaxSpeed = 100.0
-inheritVelocity = true
-Velocity = Vector3(0, 50, 0)
-velocityHandler = NodePath("../../../../CharacterVelocityHandler")
-
-[node name="Airborne" type="Node" parent="StateMachine/FreeLook" node_paths=PackedStringArray("defaultSubstate")]
-script = ExtResource("6_3smsa")
-defaultSubstate = NodePath("Falling")
-
-[node name="Falling" type="Node" parent="StateMachine/FreeLook/Airborne"]
-script = ExtResource("6_3smsa")
 
 [node name="HumanBaseFemale(FINAL_FOR_REAL)" type="Node3D" parent="."]
 
@@ -4532,4 +4508,4 @@ parameters/Jump/request = 0
 parameters/Momentum/blend_position = 0.0
 parameters/StateMachine/conditions/is_on_floor = false
 
-[node name="AccelerationDirection" type="Node3D" parent="."]
+[connection signal="Movement" from="InputHandler" to="RootState/Grounded/Walk" method="OnSignal"]
