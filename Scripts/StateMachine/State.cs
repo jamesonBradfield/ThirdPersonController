@@ -45,17 +45,21 @@ public partial class State : Node
     public void OnSignal(Variant data)
     {
         genericData = data;
-        // could be a case that a leaf state won't set its data, leaf states should set data, and execute signal expressions IE, our active Child bool should check if we have children and an active state, if we have no active child but also have no children, we are a leaf and should still execute, else we should probably check our condition to see if we should still be in the state. IE (if we are in grounded and idle/walk/run aren't firing, we must be Airborne and there is some bug "this should be impossible given the nature of our system but just making sure")
-        //
-        // TLDR
-        // just because we don't have an active child doesn't mean we shouldn't process signalExpressions (if we are the walk state "a leaf with no active child" currently our signalExpression isn't being executed)
-        if (activeChild == null)
+
+        // If we have an active child, let it handle the signal
+        if (activeChild != null)
+        {
+            activeChild.OnSignal(data);
             return;
+        }
 
-        if (!string.IsNullOrEmpty(activeChild.signalExpression))
+        // We're a leaf state - execute our own signal expression
+        if (!string.IsNullOrEmpty(signalExpression))
+        {
             signalExpr.Execute(new Godot.Collections.Array { velocityHandler, genericData });
+            GodotLogger.Info("genericData : " + genericData + "\nVelocity : " + velocityHandler.Velocity);
+        }
     }
-
     bool CanActivate()
     {
         if (condition == "true")

@@ -4243,7 +4243,7 @@ metadata/_custom_type_script = "uid://b5nrm831djyv5"
 
 [node name="Idle" type="Node" parent="RootState/Grounded"]
 script = ExtResource("4_fkybt")
-condition = "player.Grounded"
+condition = "!player.Moving"
 priority = 99
 acceleration = -10.0
 inheritVelocity = false
@@ -4252,7 +4252,7 @@ metadata/_custom_type_script = "uid://b5nrm831djyv5"
 [node name="Walk" type="Node" parent="RootState/Grounded"]
 script = ExtResource("4_fkybt")
 condition = "player.Moving"
-signalExpression = "velocity.Direction = Vector3(genericData.X,0,genericData.Y)"
+signalExpression = "velocityHandler.Direction = Vector3((float)genericData.X,0,(float)genericData.Y)"
 acceleration = 10.0
 maxSpeed = 5.0
 inheritVelocity = false
